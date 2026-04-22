@@ -1,0 +1,358 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aurora 智能助手</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260421f" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-brand">Aurora Chat</div>
+          <button id="new-chat-btn" class="primary-btn">+ 新建对话</button>
+          <button id="toggle-history-btn" class="ghost-btn desktop-only icon-only" aria-expanded="true" title="收起侧边栏">
+            ←
+          </button>
+          <button id="mobile-close-btn" class="ghost-btn mobile-only" aria-label="关闭侧边栏">&times;</button>
+        </div>
+        <div class="sidebar-section-label">对话历史</div>
+        <div id="conversation-list" class="conversation-list"></div>
+        <div class="sidebar-workbench">
+          <button id="open-model-center-btn" class="ghost-btn">模型中心</button>
+          <button id="open-skill-center-btn" class="ghost-btn">技能中心</button>
+          <button id="open-settings-center-btn" class="ghost-btn">设置</button>
+        </div>
+      </aside>
+
+      <main class="chat-panel">
+        <header class="chat-header">
+          <button id="mobile-open-btn" class="ghost-btn mobile-only" aria-label="打开侧边栏">☰</button>
+          <div class="header-left">
+            <h1>Aurora 智能助手</h1>
+            <p id="chat-subtitle">本地任务、技能与多模型提供方聊天助手</p>
+          </div>
+          <div class="header-actions">
+            <button
+              id="expand-history-btn"
+              class="ghost-btn desktop-only hidden icon-only"
+              aria-label="展开对话历史"
+              title="展开侧边栏"
+            >
+              →
+            </button>
+            <div id="model-chip" class="model-chip">运行时加载中...</div>
+          </div>
+        </header>
+
+        <section id="message-list" class="message-list">
+          <div class="welcome-card">
+            <h2>你好，我们继续把这台本地 AI 助手打磨完整。</h2>
+            <p>
+              现在支持本地聊天、任务工具、模型切换、模型下载和自定义技能。任务型命令会走内置工具，其他内容会通过
+              当前配置的模型提供方（Ollama 或 API）回答。
+            </p>
+            <div class="quick-actions">
+              <button class="quick-action" data-prompt="daily plan 6 hours">安排今日计划</button>
+              <button
+                class="quick-action"
+                data-prompt="add task Finish architecture design doc --priority high --due tomorrow --estimate 2"
+              >
+                新建任务
+              </button>
+              <button class="quick-action" data-prompt="weekly review">周复盘</button>
+              <button class="quick-action" data-prompt="请解释一下这个项目的架构原理">学习讲解</button>
+            </div>
+          </div>
+        </section>
+
+        <footer class="composer">
+          <div id="upload-list" class="upload-list hidden"></div>
+          <div class="composer-top">
+            <label for="composer-input" class="sr-only">消息输入</label>
+            <textarea
+              id="composer-input"
+              placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+              rows="1"
+              maxlength="20000"
+            ></textarea>
+          </div>
+          <div class="composer-bottom">
+            <div class="model-select-wrap">
+                  <label for="model-select">当前模型</label>
+                  <select id="model-select"></select>
+                </div>
+            <button id="upload-file-btn" class="ghost-btn" type="button" aria-label="上传文件">📎 上传文件</button>
+            <input id="upload-file-input" type="file" class="hidden" multiple />
+            <button id="send-btn" class="send-btn" aria-label="发送消息">发送</button>
+          </div>
+        </footer>
+      </main>
+
+      <aside id="inspector" class="inspector" aria-hidden="true">
+        <div class="inspector-header">
+          <div>
+            <div class="inspector-kicker">工作台</div>
+            <h2 id="inspector-title">模型中心</h2>
+          </div>
+          <button id="close-inspector-btn" class="ghost-btn" aria-label="关闭面板">关闭</button>
+        </div>
+
+        <div class="inspector-tabs">
+          <button id="tab-models-btn" class="tab-btn active" data-tab="models">模型中心</button>
+          <button id="tab-skills-btn" class="tab-btn" data-tab="skills">技能中心</button>
+          <button id="tab-settings-btn" class="tab-btn" data-tab="settings">设置</button>
+        </div>
+
+        <div class="inspector-body">
+          <section id="panel-models" class="panel-section active">
+            <div class="panel-block">
+              <div class="panel-heading-row">
+                <div>
+                  <h3>搜索模型库</h3>
+                  <p>从官方 Ollama 模型库浏览模型，然后一键下载并切换。</p>
+                </div>
+              </div>
+              <div class="toolbar-row">
+                <input id="model-search-input" class="text-input" placeholder="搜索模型，例如 qwen / llama / embedding" />
+                <button id="model-search-btn" class="primary-btn slim-btn">搜索</button>
+              </div>
+              <div class="toolbar-row compact-row">
+                <input id="manual-model-input" class="text-input" placeholder="或直接输入模型名，例如 qwen3.5:7b" />
+                <button id="manual-model-pull-btn" class="primary-btn slim-btn">下载并切换</button>
+              </div>
+              <div id="model-pull-progress-wrap" class="model-pull-progress hidden">
+                <div class="model-pull-progress-track">
+                  <div id="model-pull-progress-fill" class="model-pull-progress-fill"></div>
+                </div>
+                <div id="model-pull-progress-text" class="model-pull-progress-text">等待下载任务开始...</div>
+              </div>
+              <div id="model-pull-status" class="status-card hidden"></div>
+            </div>
+
+            <div class="panel-block">
+              <div class="panel-heading-row">
+                <div>
+                  <h3>本地已下载</h3>
+                  <p>可以直接切换，也可以去模型库下载新的标签版本。</p>
+                </div>
+              </div>
+              <div id="local-model-list" class="stack-list"></div>
+            </div>
+
+            <div class="panel-block">
+              <div class="panel-heading-row">
+                <div>
+                  <h3>官方模型库</h3>
+                  <p>点击“查看版本”可展开标签列表；下载完成后会自动切换为当前模型。</p>
+                </div>
+              </div>
+              <div id="remote-model-list" class="stack-list"></div>
+            </div>
+
+            <div id="model-tags-section" class="panel-block hidden">
+              <div class="panel-heading-row">
+                <div>
+                  <h3 id="model-tags-title">标签版本</h3>
+                  <p>选择更具体的标签，例如参数规模或量化版本。</p>
+                </div>
+              </div>
+              <div id="model-tag-list" class="stack-list"></div>
+            </div>
+          </section>
+
+          <section id="panel-skills" class="panel-section">
+            <div class="panel-block">
+              <div class="panel-heading-row">
+                <div>
+                  <h3>新增 / 编辑技能</h3>
+                  <p>技能会在消息命中关键词时自动注入系统提示词。关键词留空表示始终生效。</p>
+                </div>
+              </div>
+
+              <form id="skill-form" class="skill-form">
+                <input id="skill-id-input" type="hidden" />
+                <label>
+                  <span>技能名称</span>
+                  <input id="skill-name-input" class="text-input" maxlength="80" placeholder="例如：代码讲解" required />
+                </label>
+                <label>
+                  <span>技能简介</span>
+                  <input id="skill-description-input" class="text-input" maxlength="240" placeholder="一句话说明这个技能做什么" />
+                </label>
+                <label>
+                  <span>触发关键词</span>
+                  <input id="skill-keywords-input" class="text-input" maxlength="400" placeholder="多个关键词用逗号分隔，例如：原理, 讲解, 教我" />
+                </label>
+                <label>
+                  <span>技能规则</span>
+                  <textarea
+                    id="skill-instruction-input"
+                    class="text-area"
+                    maxlength="8000"
+                    rows="6"
+                    placeholder="这里写给模型的具体规则，例如：先讲整体，再讲细节，最后给例子。"
+                    required
+                  ></textarea>
+                </label>
+                <label class="toggle-row">
+                  <input id="skill-enabled-input" type="checkbox" checked />
+                  <span>保存后立即启用</span>
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="primary-btn slim-btn">保存技能</button>
+                  <button id="skill-form-reset-btn" type="button" class="ghost-btn">清空表单</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="panel-block">
+              <div class="panel-heading-row">
+                <div>
+                  <h3>技能列表</h3>
+                  <p>你可以启用、停用、编辑或删除技能。内置示例技能也可以直接改。</p>
+                </div>
+              </div>
+              <div id="skill-list" class="stack-list"></div>
+            </div>
+          </section>
+
+          <section id="panel-settings" class="panel-section">
+            <div class="panel-block">
+              <div class="panel-heading-row">
+                <div>
+                  <h3>界面与行为</h3>
+                  <p>这些设置会持久化保存，重开页面后仍会生效。</p>
+                </div>
+              </div>
+
+              <form id="settings-form" class="skill-form">
+                <label>
+                  <span>页面风格</span>
+                  <select id="settings-theme-select" class="text-input">
+                    <option value="amber">暖色纸感</option>
+                    <option value="ocean">清爽蓝绿</option>
+                    <option value="graphite">石墨灰调</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>模型提供方</span>
+                  <select id="settings-provider-select" class="text-input">
+                    <option value="ollama">Ollama（本地服务）</option>
+                    <option value="openai_compatible">OpenAI 兼容 API（百炼等）</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>默认模型</span>
+                  <input id="settings-llm-model-input" class="text-input" placeholder="例如：qwen3.5:4b / qwen-plus" />
+                </label>
+
+                <label id="settings-ollama-url-wrap">
+                  <span>Ollama 地址</span>
+                  <input id="settings-ollama-url-input" class="text-input" placeholder="例如：http://127.0.0.1:11434" />
+                </label>
+                <div id="settings-ollama-actions-wrap" class="form-actions">
+                  <button id="settings-start-ollama-btn" type="button" class="secondary-btn">启动 Ollama</button>
+                  <button id="settings-ollama-version-btn" type="button" class="secondary-btn">查看版本</button>
+                </div>
+
+                <div id="settings-openai-fields" class="provider-section">
+                  <label>
+                    <span>API 兼容地址</span>
+                    <input
+                      id="settings-openai-base-url-input"
+                      class="text-input"
+                      placeholder="例如：https://dashscope.aliyuncs.com/compatible-mode/v1"
+                    />
+                  </label>
+
+                  <label>
+                    <span>API Key</span>
+                    <input
+                      id="settings-openai-api-key-input"
+                      type="password"
+                      class="text-input"
+                      placeholder="留空表示不修改，勾选下方可清空"
+                    />
+                  </label>
+
+                  <label class="toggle-row">
+                    <input id="settings-openai-clear-key-input" type="checkbox" />
+                    <span>保存时清空已保存的 API Key</span>
+                  </label>
+
+                  <div id="settings-openai-key-status" class="status-inline"></div>
+
+                  <label>
+                    <span>API 默认模型</span>
+                    <input id="settings-openai-model-input" class="text-input" placeholder="例如：qwen-plus" />
+                  </label>
+                </div>
+
+                <label>
+                  <span>聊天历史条数（4-80）</span>
+                  <input id="settings-history-limit-input" type="number" min="4" max="80" class="text-input" />
+                </label>
+
+                <label>
+                  <span>工具意图阈值（0.05-0.98）</span>
+                  <input id="settings-intent-threshold-input" type="number" min="0.05" max="0.98" step="0.01" class="text-input" />
+                </label>
+
+                <label>
+                  <span>首选 Web 端口（用于启动脚本）</span>
+                  <input id="settings-web-port-input" type="number" min="1000" max="65535" class="text-input" />
+                </label>
+
+                <label class="toggle-row">
+                  <input id="settings-auto-select-input" type="checkbox" />
+                  <span>下载模型后自动切换</span>
+                </label>
+
+                <label class="toggle-row">
+                  <input id="settings-enter-send-input" type="checkbox" />
+                  <span>回车发送（Shift+Enter 换行）</span>
+                </label>
+
+                <div class="form-actions">
+                  <button id="settings-save-btn" type="submit" class="primary-btn slim-btn">保存设置</button>
+                </div>
+              </form>
+
+              <div id="settings-status" class="status-card hidden"></div>
+            </div>
+
+            <div id="settings-model-dir-block" class="panel-block">
+              <div class="panel-heading-row">
+                <div>
+                  <h3>大模型文件夹（OLLAMA_MODELS）</h3>
+                  <p>用于检测本机模型目录和设置后续模型下载位置。修改后通常需要重启 Ollama 服务。</p>
+                </div>
+              </div>
+
+              <div class="toolbar-row">
+                <input id="settings-model-dir-input" class="text-input" placeholder="例如：D:\\AI\\OllamaModels" />
+                <button id="settings-pick-dir-btn" type="button" class="secondary-btn">选择文件夹</button>
+                <button id="settings-detect-btn" type="button" class="secondary-btn">检测本机模型目录</button>
+              </div>
+
+              <div id="settings-detection-list" class="stack-list" style="margin-top: 10px"></div>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <template id="message-template">
+      <article class="message">
+        <div class="message-role"></div>
+        <div class="message-bubble"></div>
+      </article>
+    </template>
+
+    <script src="/static/app.js?v=20260421f" defer></script>
+  </body>
+</html>
