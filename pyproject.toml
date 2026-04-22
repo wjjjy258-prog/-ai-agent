@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aurora-agent"
+version = "0.1.0"
+description = "A complete offline AI agent with memory, planning, and tools."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Codex" }
+]
+dependencies = [
+  "fastapi>=0.115.0,<1.0.0",
+  "uvicorn>=0.30.0,<1.0.0",
+  "httpx>=0.27.0,<1.0.0",
+  "python-multipart>=0.0.9,<1.0.0",
+]
+
+[project.scripts]
+aurora-agent = "ai_agent.cli:main"
+aurora-web = "ai_agent.web.app:run"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"ai_agent.web" = ["static/*"]
